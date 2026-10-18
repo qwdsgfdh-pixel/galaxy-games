@@ -34,14 +34,12 @@ input{font:inherit;width:100%;padding:9px;margin:4px 0;border-radius:10px;border
  <div id="avs"></div><input id="pw" type="password" placeholder="رمز (اختیاری؛ برای ثبت‌نام)">
  <button class="btn" onclick="login()">🚀 ورود به کهکشان</button></div></div>
 
-<div id="lobby" class="sc"><h1>لابی</h1><div class="gl pn tilt">
+<div id="lobby" class="sc"><h1>شطرنج</h1><div class="gl pn tilt">
  <b id="who"></b> <small id="onl"></small><br>
- <p>⚡ بازی سریع (شطرنج)</p>
- <button class="btn" onclick="sk.emit('quick',3)">۳ دقیقه</button><button class="btn" onclick="sk.emit('quick',5)">۵ دقیقه</button><button class="btn" onclick="sk.emit('quick',10)">۱۰ دقیقه</button>
- <p>🔒 اتاق خصوصی</p><button class="btn o" onclick="sk.emit('create',{limit:5,priv:true})">ساخت اتاق (۵ دقیقه)</button>
- <input id="cd" maxlength="5" placeholder="کد ۵ حرفی اتاق"><button class="btn o" onclick="sk.emit('join',$('cd').value)">ورود با کد</button>
- <p>🟢 اتاق‌های باز</p><div id="open"></div><p>👁 بازی‌های زنده</p><div id="live"></div>
- <button class="btn o" onclick="sk.emit('top')">🏆 برترین‌ها</button><div id="top"></div></div></div>
+ <button class="btn" style="font-size:1.3rem;padding:14px 26px;width:90%;margin-top:12px" onclick="play()">🎮 شروع بازی</button>
+ <p style="opacity:.7;font-size:.8rem">حریف پیدا می‌کنیم؛ اگر کسی نبود، با ربات بازی می‌کنی</p>
+ <button class="btn o" style="width:90%;margin-top:6px" onclick="friends()">👥 بازی با دوستان</button><br>
+ <button class="btn o" style="margin-top:10px" onclick="sk.emit('top')">🏆 برترین‌ها</button><div id="top"></div></div></div>
 
 <div id="game" class="sc">
  <div class="bar gl"><span id="pt"></span><b id="ct">0:00</b></div>
@@ -78,9 +76,7 @@ function init(){
  sk.on('logged',d=>{me=d.name;$('who').textContent=d.avatar+' '+d.name+' • ELO '+fa(d.elo);if(!room)show('lobby');
   const q=new URLSearchParams(location.search).get('room');if(q){sk.emit('join',q);history.replaceState(0,'','/')}});
  sk.on('err',toast);
- sk.on('lobby',d=>{$('onl').textContent='🟢 آنلاین: '+fa(d.online);
-  fill('open',d.open,r=>[r.host+' • '+fa(r.min)+' دقیقه','بازی',()=>sk.emit('join',r.id)]);
-  fill('live',d.live,r=>[r.w+' ⚔ '+r.b,'تماشا',()=>sk.emit('join',r.id)])});
+ sk.on('lobby',d=>{$('onl').textContent='🟢 آنلاین: '+fa(d.online)});
  sk.on('top',d=>{$('top').innerHTML='';d.all.forEach((p,i)=>row($('top'),fa(i+1)+'. '+p.avatar+' '+p.name,fa(p.elo)+' ('+fa(p.w)+'برد/'+fa(p.l)+'باخت)'));
   row($('top'),'— امروز —','');d.day.forEach(p=>row($('top'),p.avatar+' '+p.name,(p.dp>0?'+':'')+fa(p.dp)))});
  sk.on('legal',l=>{lg=l;hlShow()});
@@ -99,7 +95,11 @@ function init(){
 function row(p,a,b,fn,bt){const d=document.createElement('div');d.className='row';const x=document.createElement('span');x.textContent=a;d.append(x);if(bt){const k=document.createElement('button');k.className='btn';k.textContent=bt;k.onclick=fn;d.append(k)}else{const y=document.createElement('span');y.textContent=b;d.append(y)}p.append(d)}
 function fill(id,L,f){const e=$(id);e.innerHTML='';if(!L.length)e.textContent='— خالی —';L.forEach(r=>{const[a,bt,fn]=f(r);row(e,a,'',fn,bt)})}
 function login(){cred={name:$('nm').value,pass:$('pw').value,avatar:av,token:tk};sk.emit('login',cred)}
-function lobby(){sk.emit('leave');room=null;col=null;$('over').style.display='none';$('chat').innerHTML='';clr();rebuild('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');show('lobby')}
+let fr=0; // ۱ یعنی بازی با دوستان
+function play(){fr=0;sk.emit('quick',5)}
+function friends(){fr=1;sk.emit('create',{limit:5,priv:true})}
+function shareLink(id){const u=location.origin+'/?room='+id;navigator.share?navigator.share({text:'بیا شطرنج بازی کنیم ♟',url:u}).catch(()=>{}):navigator.clipboard.writeText(u).then(()=>toast('لینک کپی شد؛ برای دوستت بفرست'))}
+function lobby(){fr=0;sk.emit('leave');room=null;col=null;$('over').style.display='none';$('chat').innerHTML='';clr();rebuild('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR');show('lobby')}
 function chat(){const v=$('ci').value.trim();if(v)sk.emit('chat',v);$('ci').value=''}
 function ans(ok){sk.emit('ans',ok);$('ask').style.display='none'}
 
@@ -198,9 +198,9 @@ function onState(s){const first=!room||room.id!==s.id;room=s;rt=performance.now(
  clr();if(s.mate){shake=1.5;red.intensity=4}else if(s.chk){shake=.4;tone(660,.12,'square',.06)}
  const top=col==='b'?'w':'b',bot=top==='w'?'b':'w',pl=k=>{const p=s.p[k];return p?p.avatar+' '+p.name+' ('+fa(p.elo)+')'+(p.off?' ⚠️':''):'⏳ منتظر حریف…'};
  $('pt').textContent=pl(top);$('pb').textContent=pl(bot);
- $('info').textContent=s.status==='wait'?'کد اتاق: '+s.id+' (دکمه زیر را بزن تا لینک دعوت بسازد)':s.status==='end'?'پایان بازی':(s.turn==='w'?'نوبت سفید ⚪':'نوبت سیاه ⚫')+(s.chk?' — کیش!':'')+(s.spec?' • 👁 '+fa(s.spec):'');
+ $('info').textContent=s.status==='wait'?(fr?'📨 منتظر دوستت هستی؛ اینجا بزن و لینک را بفرست':'🔎 در حال جستجوی حریف… (اگر کسی نبود، ربات می‌آید)'):s.status==='end'?'پایان بازی':(s.turn==='w'?'نوبت سفید ⚪':'نوبت سیاه ⚫')+(s.chk?' — کیش!':'')+(s.spec?' • 👁 '+fa(s.spec):'');
  const bt=s.p.b&&s.p.b.name==='ربات'&&s.status==='play';if(bt){$('info').textContent='🤖 با ربات داری بازی می‌کنی • '+$('info').textContent;if(window.bs!==s.id){window.bs=s.id;toast('🤖 حریفی پیدا نشد؛ با ربات داری بازی می‌کنی')}}
- if(s.status==='wait'){$('info').onclick=()=>{const u=location.origin+'/?room='+s.id;navigator.share?navigator.share({url:u}).catch(()=>{}):navigator.clipboard.writeText(u).then(()=>toast('لینک کپی شد'))}}else $('info').onclick=null}
+ if(s.status==='wait'&&fr){$('info').onclick=()=>shareLink(s.id);if(first)shareLink(s.id)}else $('info').onclick=null}
 function clocks(){const m=t=>{t=Math.max(0,t/1000);return fa(Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'))},e=room.status==='play'?performance.now()-rt:0,top=col==='b'?'w':'b',bot=top==='w'?'b':'w',c=k=>room.clock[k]-(room.turn===k?e:0);
  $('ct').textContent=m(c(top));$('cb').textContent=m(c(bot))}
 window.THREE&&window.io?prog(100):$('pc').textContent=(window.THREE?'':'کتابخانه Three.js بارگذاری نشد. ')+(window.io?'':'ارتباط با سرور برقرار نشد. ')+'اینترنت/فیلترشکن را بررسی کن و صفحه را دوباره باز کن';
