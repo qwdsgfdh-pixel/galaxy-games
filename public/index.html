@@ -199,6 +199,7 @@ function onState(s){const first=!room||room.id!==s.id;room=s;rt=performance.now(
  const top=col==='b'?'w':'b',bot=top==='w'?'b':'w',pl=k=>{const p=s.p[k];return p?p.avatar+' '+p.name+' ('+fa(p.elo)+')'+(p.off?' ⚠️':''):'⏳ منتظر حریف…'};
  $('pt').textContent=pl(top);$('pb').textContent=pl(bot);
  $('info').textContent=s.status==='wait'?'کد اتاق: '+s.id+' (دکمه زیر را بزن تا لینک دعوت بسازد)':s.status==='end'?'پایان بازی':(s.turn==='w'?'نوبت سفید ⚪':'نوبت سیاه ⚫')+(s.chk?' — کیش!':'')+(s.spec?' • 👁 '+fa(s.spec):'');
+ const bt=s.p.b&&s.p.b.name==='ربات'&&s.status==='play';if(bt){$('info').textContent='🤖 با ربات داری بازی می‌کنی • '+$('info').textContent;if(window.bs!==s.id){window.bs=s.id;toast('🤖 حریفی پیدا نشد؛ با ربات داری بازی می‌کنی')}}
  if(s.status==='wait'){$('info').onclick=()=>{const u=location.origin+'/?room='+s.id;navigator.share?navigator.share({url:u}).catch(()=>{}):navigator.clipboard.writeText(u).then(()=>toast('لینک کپی شد'))}}else $('info').onclick=null}
 function clocks(){const m=t=>{t=Math.max(0,t/1000);return fa(Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'))},e=room.status==='play'?performance.now()-rt:0,top=col==='b'?'w':'b',bot=top==='w'?'b':'w',c=k=>room.clock[k]-(room.turn===k?e:0);
  $('ct').textContent=m(c(top));$('cb').textContent=m(c(bot))}
